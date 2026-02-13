@@ -150,6 +150,7 @@ class SettingsModel private constructor(
         bind(bleL2capEnabled, "bleL2capEnabled", false)
         bind(bleL2capInEngagementEnabled, "bleL2capInEngagementEnabled", true)
         bind(insertNfcPollingFrames, "insertNfcPollingFrames", true)
+        bind(allowSelfSignedIssuers, "allowSelfSignedIssuers", false)
     }
 
     val logTransactions = MutableStateFlow<Boolean>(false)
@@ -167,4 +168,5 @@ class SettingsModel private constructor(
     val bleL2capEnabled = MutableStateFlow<Boolean>(false)
     val bleL2capInEngagementEnabled = MutableStateFlow<Boolean>(false)
     val insertNfcPollingFrames = MutableStateFlow<Boolean>(true)
+    val allowSelfSignedIssuers = MutableStateFlow<Boolean>(false)
 }

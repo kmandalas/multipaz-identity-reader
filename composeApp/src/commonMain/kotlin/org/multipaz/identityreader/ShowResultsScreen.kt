@@ -65,6 +65,7 @@ fun ShowResultsScreen(
     readerModel: ReaderModel,
     documentTypeRepository: DocumentTypeRepository,
     issuerTrustManager: TrustManager,
+    allowSelfSignedIssuers: Boolean,
     onBackPressed: () -> Unit,
     onShowDetailedResults: (() -> Unit)?
 ) {
@@ -79,7 +80,7 @@ fun ShowResultsScreen(
                 val now = Clock.System.now()
                 try {
                     documents.value =
-                        parseResponse(now, readerModel, documentTypeRepository, issuerTrustManager)
+                        parseResponse(now, readerModel, documentTypeRepository, issuerTrustManager, allowSelfSignedIssuers)
                 } catch (e: Throwable) {
                     verificationError.value = e
                 }
@@ -140,7 +141,7 @@ private data class ParsedMdocDocument(
     val msoSigned: Instant,
     val msoExpectedUpdate: Instant?,
     val namespaces: List<ParsedMdocNamespace>,
-    val trustPoint: TrustPoint
+    val trustPoint: TrustPoint?
 )
 
 private data class ParsedMdocNamespace(
@@ -155,7 +156,8 @@ private suspend fun parseResponse(
     now: Instant,
     readerModel: ReaderModel,
     documentTypeRepository: DocumentTypeRepository,
-    issuerTrustManager: TrustManager
+    issuerTrustManager: TrustManager,
+    allowSelfSignedIssuers: Boolean
 ): List<ParsedMdocDocument> {
     val deviceResponse = DeviceResponse.fromDataItem(Cbor.decode(
         readerModel.result!!.encodedDeviceResponse!!.toByteArray()))
@@ -170,7 +172,13 @@ private suspend fun parseResponse(
     val readerDocuments = mutableListOf<ParsedMdocDocument>()
     for (document in deviceResponse.documents) {
         val trustResult = issuerTrustManager.verify(document.issuerCertChain.certificates, now)
-        require(trustResult.isTrusted) { "Document issuer isn't trusted" }
+        val trustPoint: TrustPoint? = if (trustResult.isTrusted) {
+            trustResult.trustPoints[0]
+        } else if (allowSelfSignedIssuers && document.issuerCertChain.certificates.isNotEmpty()) {
+            null
+        } else {
+            throw IllegalArgumentException("Document issuer isn't trusted")
+        }
 
         val mdocType = documentTypeRepository.getDocumentTypeForMdoc(document.docType)?.mdocDocumentType
         val resultNs = mutableListOf<ParsedMdocNamespace>()
@@ -208,7 +216,7 @@ private suspend fun parseResponse(
                 msoSigned = document.mso.signedAt,
                 msoExpectedUpdate = document.mso.expectedUpdate,
                 namespaces = resultNs,
-                trustPoint = trustResult.trustPoints[0]
+                trustPoint = trustPoint
             )
         )
     }
@@ -326,7 +334,7 @@ private fun ShowResultsScreenSuccess(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            if (document.trustPoint.metadata.testOnly) {
+            if (document.trustPoint?.metadata?.testOnly == true) {
                 Text(
                     text = "TEST DATA\nDO NOT USE",
                     textAlign = TextAlign.Center,

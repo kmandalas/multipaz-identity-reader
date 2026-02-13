@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.io.bytestring.ByteString
+import multipazidentityreader.composeapp.generated.resources.Res
 import org.multipaz.cbor.Cbor
 import org.multipaz.cbor.Simple
 import org.multipaz.compose.prompt.PromptDialogs
@@ -35,6 +36,9 @@ import org.multipaz.trustmanagement.TrustEntryVical
 import org.multipaz.trustmanagement.TrustEntryX509Cert
 import org.multipaz.trustmanagement.TrustManager
 import org.multipaz.trustmanagement.TrustManagerLocal
+import org.multipaz.trustmanagement.TrustMetadata
+import org.multipaz.trustmanagement.TrustPointAlreadyExistsException
+import org.multipaz.crypto.X509Cert
 import org.multipaz.util.Logger
 import org.multipaz.util.Platform
 import org.multipaz.util.fromBase64Url
@@ -122,6 +126,7 @@ class App(
                 storage = Platform.storage,
                 identifier = "userTrustManager",
             )
+            preloadBundledIssuerCert()
             compositeTrustManager = CompositeTrustManager(listOf(builtInTrustManager, userTrustManager))
 
             readerBackendClient = ReaderBackendClient(
@@ -210,6 +215,22 @@ class App(
             }
         } catch (e: Throwable) {
             Logger.i(TAG, "Error when checking for updated issuer trust list: $e")
+        }
+    }
+
+    private suspend fun preloadBundledIssuerCert() {
+        try {
+            val pemBytes = Res.readBytes("files/issuer_cert.pem")
+            val cert = X509Cert.fromPem(pemEncoding = pemBytes.decodeToString())
+            userTrustManager.addX509Cert(
+                certificate = cert,
+                metadata = TrustMetadata(displayName = "vc-issuer.eudiw.dev")
+            )
+            Logger.i(TAG, "Pre-loaded bundled issuer certificate")
+        } catch (_: TrustPointAlreadyExistsException) {
+            // Already loaded from a previous run
+        } catch (e: Throwable) {
+            Logger.i(TAG, "Error pre-loading bundled issuer certificate: $e")
         }
     }
 
@@ -350,6 +371,7 @@ class App(
                     readerModel = readerModel,
                     documentTypeRepository = documentTypeRepository,
                     issuerTrustManager = compositeTrustManager,
+                    allowSelfSignedIssuers = settingsModel.allowSelfSignedIssuers.value,
                     onBackPressed = { urlLaunchData?.finish() ?: navigator.goBack() },
                     onShowDetailedResults = if (devModeState.value) {
                         { navigator.navigate(ShowDetailedResultsDestination) }

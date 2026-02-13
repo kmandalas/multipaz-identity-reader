@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.DoorBack
 import androidx.compose.material.icons.outlined.Nfc
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -133,6 +134,30 @@ information
                                     getPlatformUtils().nfcPollingFramesInsertionSupported,
                             onCheckedChange = { value ->
                                 settingsModel.insertNfcPollingFrames.value = value
+                            },
+                        )
+                    }
+                }
+
+                entries.add {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.Start),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(32.dp),
+                            imageVector = Icons.Outlined.VerifiedUser,
+                            contentDescription = null
+                        )
+                        EntryItem(
+                            modifier = Modifier.weight(1.0f),
+                            key = "Allow self-signed issuers",
+                            valueText = "If enabled, documents from issuers with self-signed certificates will be accepted as trusted"
+                        )
+                        Checkbox(
+                            checked = settingsModel.allowSelfSignedIssuers.collectAsState().value,
+                            onCheckedChange = { value ->
+                                settingsModel.allowSelfSignedIssuers.value = value
                             },
                         )
                     }
