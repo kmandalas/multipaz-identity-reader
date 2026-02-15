@@ -376,6 +376,13 @@ private fun ShowResultsScreenSuccess(
                         onShowDetailedResults = onShowDetailedResults
                     )
                 }
+
+                ReaderQuery.PDA1 -> {
+                    ShowIdentification(
+                        document = document,
+                        onShowDetailedResults = onShowDetailedResults
+                    )
+                }
             }
         }
     }

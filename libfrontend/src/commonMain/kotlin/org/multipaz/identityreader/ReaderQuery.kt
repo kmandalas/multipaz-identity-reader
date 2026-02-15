@@ -27,6 +27,9 @@ enum class ReaderQuery(
     IDENTIFICATION(
         displayName = "Identification",
     ),
+    PDA1(
+        displayName = "PDA1 (Social Security)",
+    ),
 
     ;
 
@@ -128,6 +131,39 @@ suspend fun generateEncodedDeviceRequest(
     encodedSessionTranscript: ByteArray,
     readerKey: AsymmetricKey.X509Compatible?,
 ): ByteArray {
+    if (query == ReaderQuery.PDA1) {
+        // PDA1 is a standalone document type (social security / labor mobility)
+        val pda1DocType = "eu.europa.ec.eudi.pda1.1"
+        val pda1Namespace = "eu.europa.ec.eudi.pda1.1"
+        val pda1ItemsToRequest = mutableMapOf<String, MutableMap<String, Boolean>>()
+        val pda1Ns = pda1ItemsToRequest.getOrPut(pda1Namespace) { mutableMapOf() }
+        pda1Ns.put("credential_holder", intentToRetain)
+        pda1Ns.put("competent_institution", intentToRetain)
+
+        val deviceRequest = buildDeviceRequestSuspend(
+            sessionTranscript = Cbor.decode(encodedSessionTranscript),
+            deviceRequestInfo = null
+        ) {
+            if (readerKey != null) {
+                addDocRequest(
+                    docType = pda1DocType,
+                    nameSpaces = pda1ItemsToRequest,
+                    docRequestInfo = null,
+                    readerKey = readerKey
+                )
+            } else {
+                addDocRequest(
+                    docType = pda1DocType,
+                    nameSpaces = pda1ItemsToRequest,
+                    docRequestInfo = null
+                )
+            }
+        }
+        Logger.iCbor(TAG, "deviceRequest", deviceRequest.toDataItem())
+        return Cbor.encode(deviceRequest.toDataItem())
+    }
+
+    // mDL / PhotoID queries
     val mdlItemsToRequest = mutableMapOf<String, MutableMap<String, Boolean>>()
     val mdlNs = mdlItemsToRequest.getOrPut(DrivingLicense.MDL_NAMESPACE) { mutableMapOf() }
     when (query) {
@@ -156,6 +192,7 @@ suspend fun generateEncodedDeviceRequest(
             mdlNs.put("issue_date", intentToRetain)
             mdlNs.put("expiry_date", intentToRetain)
         }
+        ReaderQuery.PDA1 -> { /* handled above */ }
     }
     val mdlDocType = DrivingLicense.MDL_DOCTYPE
 
@@ -187,6 +224,7 @@ suspend fun generateEncodedDeviceRequest(
             iso23220Ns.put("issue_date", intentToRetain)
             iso23220Ns.put("expiry_date", intentToRetain)
         }
+        ReaderQuery.PDA1 -> { /* handled above */ }
     }
     val photoIdDocType = PhotoID.PHOTO_ID_DOCTYPE
 
