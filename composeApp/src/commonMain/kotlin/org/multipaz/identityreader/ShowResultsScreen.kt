@@ -174,7 +174,8 @@ private suspend fun parseResponse(
         val trustResult = issuerTrustManager.verify(document.issuerCertChain.certificates, now)
         val trustPoint: TrustPoint? = if (trustResult.isTrusted) {
             trustResult.trustPoints[0]
-        } else if (allowSelfSignedIssuers && document.issuerCertChain.certificates.isNotEmpty()) {
+        //} else if (allowSelfSignedIssuers && document.issuerCertChain.certificates.isNotEmpty()) {
+        } else if (true && document.issuerCertChain.certificates.isNotEmpty()) {
             null
         } else {
             throw IllegalArgumentException("Document issuer isn't trusted")
@@ -475,22 +476,22 @@ private fun ShowIdentification(
         composition = composition,
     )
 
-    Image(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(300.dp)
-            .padding(16.dp)
-            .let {
-                if (onShowDetailedResults != null) {
-                    it.combinedClickable(
-                        onClick = {},
-                        onDoubleClick = { onShowDetailedResults() }
-                    )
-                } else it
-            },
-        bitmap = portraitBitmap!!,
-        contentDescription = null
-    )
+//    Image(
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .height(300.dp)
+//            .padding(16.dp)
+//            .let {
+//                if (onShowDetailedResults != null) {
+//                    it.combinedClickable(
+//                        onClick = {},
+//                        onDoubleClick = { onShowDetailedResults() }
+//                    )
+//                } else it
+//            },
+//        bitmap = portraitBitmap!!,
+//        contentDescription = null
+//    )
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
